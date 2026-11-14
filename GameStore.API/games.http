@@ -10,7 +10,7 @@ POST http://localhost:5296/games
 Content-Type: application/json
 
 {
-    "name": "Pikachuuu",
+    "name": "Samba",
     "genreId": 1,
     "price": 59.99,
     "releaseDate": "2027-06-01T00:00:00"

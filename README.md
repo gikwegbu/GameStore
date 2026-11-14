@@ -58,7 +58,7 @@ GameStore/
 │   │   ├── Game.cs                  # Game domain entity
 │   │   └── Genre.cs                 # Genre domain entity
 │   ├── Properties/
-│   │   └── launchSettings.json      # Local development launch profiles
+│   │   └── launchSettings.json      # Local development launch profiles (HTTP: 5296, HTTPS: 7292)
 │   ├── appsettings.json             # App configuration & SQLite connection string
 │   ├── games.http                   # Sample HTTP requests for testing
 │   ├── GameStore.API.csproj         # Project configuration & NuGet dependencies
@@ -68,38 +68,60 @@ GameStore/
 
 ---
 
-## Getting Started
+## Getting Started (Clone & Spin Up Locally)
 
 ### Prerequisites
 
-- [.NET 10 SDK](https://dotnet.microsoft.com/download) installed on your machine.
+- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) installed on your machine (verify with `dotnet --list-sdks`).
+- **VS Code** with the **REST Client** extension (for running requests in `GameStore.API/games.http`) and **C# Dev Kit** (optional, for debugging).
 - (Optional) `dotnet-ef` CLI tool if you want to create or manage migrations manually:
   ```bash
   dotnet tool install --global dotnet-ef
   ```
 
-### Installation & Running Locally
+### Step-by-Step Local Setup
 
-1. **Clone the repository**:
+1. **Clone the repository and navigate into the project folder**:
    ```bash
    git clone https://github.com/gikwegbu/GameStore.git
    cd GameStore
    ```
 
-2. **Restore dependencies**:
+2. **Restore NuGet packages and build the project**:
    ```bash
    dotnet restore GameStore.API/GameStore.API.csproj
+   dotnet build GameStore.API/GameStore.API.csproj
    ```
 
-3. **Run the API**:
+3. **(Optional) Trust the local ASP.NET Core HTTPS developer certificate**:
    ```bash
-   dotnet run --project GameStore.API
+   dotnet dev-certs https --trust
    ```
-   > On startup, the application automatically applies any pending EF Core migrations and seeds the `Genres` table if it is empty.
 
-4. **Base URL**:
-   - HTTP: `http://localhost:5296`
-   - HTTPS: `https://localhost:7292`
+4. **Start the API server**:
+   - **Via Terminal (Recommended)**:
+     ```bash
+     dotnet run --project GameStore.API
+     ```
+   - **Via VS Code Run / Debug**:
+     Press **`F5`** (or click **Run** in the C# Dev Kit sidebar). Both `http` and `https` launch profiles in `Properties/launchSettings.json` have `launchBrowser` set to `false` so the API starts quietly without opening a browser tab.
+
+   > **Note**: On startup, the application automatically creates `GameStore.API/GameStore.db`, applies any pending EF Core migrations, and seeds the `Genres` table if it is empty.
+
+5. **Verify the server is listening**:
+   - **HTTP Base URL**: `http://localhost:5296`
+   - **HTTPS Base URL**: `https://localhost:7292`
+
+6. **Test the Endpoints**:
+   Open `GameStore.API/games.http` in VS Code and click **Send Request** above any of the sample requests (`GET /games`, `POST /games`, `PUT /games/{id}`, `DELETE /games/{id}`, `GET /genres`).
+
+7. **Stopping the Server**:
+   - Press **`Ctrl + C`** in the terminal where `dotnet run` is active.
+   - Or press **`Shift + F5`** if running via the VS Code debugger.
+   - If a background process is still holding port `5296`, free it with:
+     ```bash
+     kill $(lsof -ti:5296)
+     ```
 
 ---
 
@@ -122,10 +144,10 @@ POST http://localhost:5296/games
 Content-Type: application/json
 
 {
-  "name": "The Legend of Zelda: Breath of the Wild",
-  "genreId": 2,
+  "name": "Samba",
+  "genreId": 1,
   "price": 59.99,
-  "releaseDate": "2017-03-03T00:00:00"
+  "releaseDate": "2027-06-01T00:00:00"
 }
 ```
 
@@ -153,3 +175,20 @@ To create a new migration after modifying the models:
 cd GameStore.API
 dotnet ef migrations add <MigrationName> --output-dir Data/Migrations
 ```
+
+---
+
+## Troubleshooting
+
+- **`Framework 'Microsoft.NETCore.App', version '10.0.0' was not found`**:
+  Install the [.NET 10.0 SDK](https://dotnet.microsoft.com/download/dotnet/10.0), or if you only have a newer major version installed (such as `.NET 11.0`), add `<RollForward>LatestMajor</RollForward>` inside `<PropertyGroup>` in `GameStore.API/GameStore.API.csproj`.
+- **`DllNotFoundException: e_sqlite3` / `libe_sqlite3` on macOS (arm64)**:
+  If the project folder was moved or copied from another directory, clean out stale `bin/` and `obj/` build caches and rebuild from scratch:
+  ```bash
+  rm -rf GameStore.API/bin GameStore.API/obj
+  dotnet restore GameStore.API/GameStore.API.csproj
+  dotnet build GameStore.API/GameStore.API.csproj
+  ```
+- **`Failed to bind to address http://127.0.0.1:5296: address already in use`**:
+  1. Ensure no previous instance of `GameStore.API` is still running (`kill $(lsof -ti:5296)`).
+  2. In `GameStore.API/Properties/launchSettings.json`, make sure the `"https"` profile uses distinct ports for HTTPS and HTTP (`"applicationUrl": "https://localhost:7292;http://localhost:5296"`).
